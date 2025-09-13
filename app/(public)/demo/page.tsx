@@ -1,28 +1,28 @@
 'use client';
 import './demo.css';
+import Image from 'next/image';
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button'
-import Image from 'next/image';
+import DemoSettingsDialog from '@/app/(public)/demo/_components/DemoSettingsDialog'
+import { Card, PreSymbol, DemoGameSettings } from './types'
 
-type Card = {
-	id: number,
-	symbol: string,
-	flipped: boolean,
-	matched: boolean
-}
-type PreSymbol = {
-	icon: string;
-	used: number;
-}
 const emojis = [ "🤷‍♂️", "👍", "👏", "🧠", "😂", "😁", "🎉", "🤩" ];
+/*
+TODO:
+- reset existing game button (keep cards/symbols)
+- new game button (regen cards/symbols)
+- end current game button (end play session, disable card clicking, allow for settings change)
+- refactor matching algo to handle 3 or more "Cards per Match"
+- rename 'Card' type to 'MemCard' to avoid confusion with shadcn Card
+*/
 
 
 export default function Home() {
 	const out = (s:string) => { console.log(s) }
-	const [MAX_CARDS, SET_MAX_CARDS] = useState<number>(16);
-	const [MATCHES_REQ, SET_MATCHES_REQ] = useState<number>(2);
-	const [CAN_UNFLIP_CARDS, SET_CAN_UNFLIP_CARDS] = useState<boolean>(true);
-	const [MISS_FLIP_DELAY, SET_MISS_FLIP_DELAY] = useState<number>(1000);
+	const defaultGameSettings: DemoGameSettings = {
+		cardCount: 16, cardsPerMatch: 2, canUnflipCards: true, missFlipDelay: 1000
+	}
+	const [gameSettings, setGameSettings] = useState<DemoGameSettings>({...defaultGameSettings});
 	const [cards, setCards] = useState<Card[]>([]);
 	const [activeCardId, setActiveCardId] = useState<number | null>(null);
 	const [flipCount, setFlipCount] = useState<number>(0);
@@ -34,22 +34,22 @@ export default function Home() {
 	
 
 	const setupCardSymbols = useCallback(() => {
-		if (MATCHES_REQ === 0 || MAX_CARDS <= MATCHES_REQ || MAX_CARDS % MATCHES_REQ !== 0) {
-			throw new Error(`Cant generate game cards with MAX_CARDS=${MAX_CARDS} or MATCHES_REQ=${MATCHES_REQ} values`);
+		if (gameSettings.cardsPerMatch === 0 || gameSettings.cardCount <= gameSettings.cardsPerMatch || gameSettings.cardCount % gameSettings.cardsPerMatch !== 0) {
+			throw new Error(`Cant generate game cards with gameSettings.cardCount=${gameSettings.cardCount} or gameSettings.cardsPerMatch=${gameSettings.cardsPerMatch} values`);
 		}
 		const symbols = [];
-		for (let i = 0; i < MAX_CARDS / MATCHES_REQ; i++) {
+		for (let i = 0; i < gameSettings.cardCount / gameSettings.cardsPerMatch; i++) {
 			symbols.push({ icon: emojis[i], used: 0 })
 		}
 		return symbols;
-	}, [MAX_CARDS, MATCHES_REQ]);
+	}, [gameSettings.cardCount, gameSettings.cardsPerMatch]);
 
 	const generateNewCards = useCallback((symbols: PreSymbol[]) => {
-		if (MATCHES_REQ === 0 || MAX_CARDS <= MATCHES_REQ || MAX_CARDS % MATCHES_REQ !== 0) {
-			throw new Error(`Cant generate game cards with MAX_CARDS=${MAX_CARDS} or MATCHES_REQ=${MATCHES_REQ} values`);
+		if (gameSettings.cardsPerMatch === 0 || gameSettings.cardCount <= gameSettings.cardsPerMatch || gameSettings.cardCount % gameSettings.cardsPerMatch !== 0) {
+			throw new Error(`Cant generate game cards with gameSettings.cardCount=${gameSettings.cardCount} or gameSettings.cardsPerMatch=${gameSettings.cardsPerMatch} values`);
 		}
 		const newCards = [];
-		for (let i = 0; i < MAX_CARDS; i++) {
+		for (let i = 0; i < gameSettings.cardCount; i++) {
 			let symPicked = false;
 			const max_j = 100;
 			let j = 0;
@@ -61,7 +61,7 @@ export default function Home() {
 				}
 				const symIdx = Math.floor(Math.random() * (symbols.length));
 				const candidate = symbols[symIdx];
-				if (candidate.used === MATCHES_REQ) continue;
+				if (candidate.used === gameSettings.cardsPerMatch) continue;
 				newCards.push({
 					id: i,
 					symbol: candidate.icon,
@@ -73,7 +73,7 @@ export default function Home() {
 			}
 		}
 		return newCards
-	}, [MAX_CARDS, MATCHES_REQ]);
+	}, [gameSettings.cardCount, gameSettings.cardsPerMatch]);
 	
 	const resetGameStats = useCallback(() => {
 		setActiveCardId(null);
@@ -102,9 +102,9 @@ export default function Home() {
 	}, [startGame]);
 
 	const winConditionsMet = useCallback(() => {
-		return matchCount === (MAX_CARDS / MATCHES_REQ)
+		return matchCount === (gameSettings.cardCount / gameSettings.cardsPerMatch)
 				&& cards.every((c) => c.matched && c.flipped);
-	}, [matchCount, MAX_CARDS, MATCHES_REQ, cards]);
+	}, [matchCount, gameSettings.cardCount, gameSettings.cardsPerMatch, cards]);
 
 	const endGame = useCallback(() => {
 		setPlaying(false);
@@ -127,7 +127,7 @@ export default function Home() {
 			setShowWinMessage(true);
 			//resetGameStats();
 		}
-	}, [matchCount, MAX_CARDS, cards, winConditionsMet, endGame])
+	}, [matchCount, gameSettings.cardCount, cards, winConditionsMet, endGame])
 
 	const handleCardClick = (card: Card) => {
 		out('===========================================')
@@ -145,8 +145,8 @@ export default function Home() {
 
 		if (activeCardId === card.id && card.flipped === true) {
 			out(`Clicked the active card a second time`)
-			out(`CAN_UNFLIP_CARDS=${CAN_UNFLIP_CARDS}`);
-			if (CAN_UNFLIP_CARDS) {
+			out(`gameSettings.canUnflipCards=${gameSettings.canUnflipCards}`);
+			if (gameSettings.canUnflipCards) {
 				out(`- flipping card ${card.id} back over`)
 				flipCardById(card.id);
 				out(`- done flipping ${card.id}`)
@@ -199,8 +199,8 @@ export default function Home() {
 		
 		setMissCount((prev) => prev + 1);
 		setActiveCardId(null);
-		out(`setting timeout to flip cards back with a ${MISS_FLIP_DELAY}ms delay`)
-		setTimeout(resetFlippedCards, MISS_FLIP_DELAY, card.id, cards[activeIdx].id);
+		out(`setting timeout to flip cards back with a ${gameSettings.missFlipDelay}ms delay`)
+		setTimeout(resetFlippedCards, gameSettings.missFlipDelay, card.id, cards[activeIdx].id);
 		out('===========================================')
 	}
 
@@ -242,27 +242,49 @@ export default function Home() {
 		startGame();
 	}
 
+	/*const restartGame = () => {
+		setPlaying(false);
+	}*/
+
+	const handleSettingsUpdate = (newSettings: DemoGameSettings) => {
+		setPlaying(false);
+		setGameSettings((prev) => ({...prev, ...newSettings}))
+		setGameIsComplete(true);
+		startGame();
+	}
+
 	return (
 		<>
 			<div className="container mx-auto px-4 md:px-6 pt-10">
 				<div className="flex flex-col w-full max-w-3xl mx-auto space-y-8">
-					<h1 className="text-center">Here&apos;s where we&apos;ll play the game and demonstrate the app.</h1>
+					<h1 className="text-3xl text-center">Memory Cards Demo</h1>
 					<div className="flex flex-col gap-2">
+						<div className="flex flex-col gap-2">
+							<div className="flex flex-col gap-2">
+								<div className="flex flex-col text-center">
+									<span>Card Count: <span className="font-black">{gameSettings.cardCount}</span></span>
+									<span>Cards per match: <span className="font-black">{gameSettings.cardsPerMatch}</span></span>
+								</div>
+								<div className="flex flex-row justify-center">
+									<DemoSettingsDialog settings={gameSettings} onSave={handleSettingsUpdate} />
+								</div>
+							</div>
+							<div className="flex flex-row h-10 justify-center align-middle gap-2">
+								{showWinMessage && <>
+									<div className="flex flex-col items-center justify-center font-black text-green-700">
+										You won! Good job.
+									</div>
+									<div className="flex justify-center items-center">
+										<Button className='h-8 bg-green-700' onClick={handlePlayAgainClick}>Play Again ?</Button>
+									</div>
+								</>}
+							</div>
+						</div>
 						<div className="flex flex-row gap-2 justify-center">
 							<span>Flip Count: {flipCount}</span> |
 							<span>Miss Count: {missCount}</span> |
 							<span>Match Count: {matchCount}</span> |
 							<span>Active Card: {activeCardId || "(none)"}</span>
-						</div>
-						<div className="flex flex-row h-10 justify-center align-middle gap-2">
-							{showWinMessage && <>
-								<div className="flex flex-col items-center justify-center font-black text-green-700">
-									You won! Good job.
-								</div>
-								<div className="flex justify-center items-center">
-									<Button className='h-8 bg-green-700' onClick={handlePlayAgainClick}>Play Again ?</Button>
-								</div>
-							</>}
 						</div>
 					</div>
 					<div className="flex mx-auto">
@@ -283,8 +305,6 @@ export default function Home() {
 							})}
 						</div>
 					</div>
-
-
 				</div>
 			</div>
 		</>
