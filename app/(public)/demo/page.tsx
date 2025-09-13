@@ -1,5 +1,7 @@
 'use client';
+import './demo.css';
 import { useState, useEffect, useCallback } from 'react';
+import { Button } from '@/components/ui/button'
 import Image from 'next/image';
 
 type Card = {
@@ -18,6 +20,7 @@ const emojis = [ "🤷‍♂️", "👍", "👏", "🧠", "😂", "😁", "🎉"
 export default function Home() {
 	const out = (s:string) => { console.log(s) }
 	const [MAX_CARDS, SET_MAX_CARDS] = useState<number>(16);
+	const [MATCHES_REQ, SET_MATCHES_REQ] = useState<number>(2);
 	const [CAN_UNFLIP_CARDS, SET_CAN_UNFLIP_CARDS] = useState<boolean>(true);
 	const [MISS_FLIP_DELAY, SET_MISS_FLIP_DELAY] = useState<number>(1000);
 	const [cards, setCards] = useState<Card[]>([]);
@@ -27,17 +30,24 @@ export default function Home() {
 	const [missCount, setMissCount] = useState<number>(0);
 	const [playing, setPlaying] = useState<boolean>(false);
 	const [showWinMessage, setShowWinMessage] = useState<boolean>(false);
+	const [gameIsComplete, setGameIsComplete] = useState<boolean>(false);
 	
 
 	const setupCardSymbols = useCallback(() => {
+		if (MATCHES_REQ === 0 || MAX_CARDS <= MATCHES_REQ || MAX_CARDS % MATCHES_REQ !== 0) {
+			throw new Error(`Cant generate game cards with MAX_CARDS=${MAX_CARDS} or MATCHES_REQ=${MATCHES_REQ} values`);
+		}
 		const symbols = [];
-		for (let i = 0; i < MAX_CARDS / 2; i++) {
+		for (let i = 0; i < MAX_CARDS / MATCHES_REQ; i++) {
 			symbols.push({ icon: emojis[i], used: 0 })
 		}
 		return symbols;
-	}, [MAX_CARDS]);
+	}, [MAX_CARDS, MATCHES_REQ]);
 
 	const generateNewCards = useCallback((symbols: PreSymbol[]) => {
+		if (MATCHES_REQ === 0 || MAX_CARDS <= MATCHES_REQ || MAX_CARDS % MATCHES_REQ !== 0) {
+			throw new Error(`Cant generate game cards with MAX_CARDS=${MAX_CARDS} or MATCHES_REQ=${MATCHES_REQ} values`);
+		}
 		const newCards = [];
 		for (let i = 0; i < MAX_CARDS; i++) {
 			let symPicked = false;
@@ -51,7 +61,7 @@ export default function Home() {
 				}
 				const symIdx = Math.floor(Math.random() * (symbols.length));
 				const candidate = symbols[symIdx];
-				if (candidate.used === 2) continue;
+				if (candidate.used === MATCHES_REQ) continue;
 				newCards.push({
 					id: i,
 					symbol: candidate.icon,
@@ -63,28 +73,44 @@ export default function Home() {
 			}
 		}
 		return newCards
-	}, [MAX_CARDS]);
-
+	}, [MAX_CARDS, MATCHES_REQ]);
+	
 	const resetGameStats = useCallback(() => {
 		setActiveCardId(null);
 		setFlipCount(0);
 		setMatchCount(0);
 		setMissCount(0);
 		setCards([]);
-		setPlaying(false);
 	}, [])
 
 	const startGame = useCallback(() => {
 		resetGameStats();
-		const symbols = setupCardSymbols();
-		const newCards = generateNewCards(symbols);
-		setCards([...newCards]);
+		try {
+			const symbols = setupCardSymbols();
+			const newCards = generateNewCards(symbols);
+			setCards([...newCards]);
+		} catch (err) {
+			// todo: error logging with posthog or sentry or something
+			console.error(err);
+		}
+		
 		setPlaying(true);
 	}, [resetGameStats, setupCardSymbols, generateNewCards, setCards]);
 
 	useEffect(() => {
 		startGame();
 	}, [startGame]);
+
+	const winConditionsMet = useCallback(() => {
+		return matchCount === (MAX_CARDS / MATCHES_REQ)
+				&& cards.every((c) => c.matched && c.flipped);
+	}, [matchCount, MAX_CARDS, MATCHES_REQ, cards]);
+
+	const endGame = useCallback(() => {
+		setPlaying(false);
+		setGameIsComplete(true);
+		setShowWinMessage(true);
+	}, [setPlaying, setGameIsComplete, setShowWinMessage])
 
 	/* win check useEffect */
 	useEffect(() => {
@@ -94,13 +120,14 @@ export default function Home() {
 		out(`condition two: ${cards.every((c) => c.matched && c.flipped)}`)*/
 		
 		if(
-			matchCount  >= (MAX_CARDS / 2) - 1
-			&& cards.every((c) => c.matched && c.flipped)
+			winConditionsMet()
 		) {
+			endGame();
+			setGameIsComplete(true);
 			setShowWinMessage(true);
 			//resetGameStats();
 		}
-	}, [matchCount, MAX_CARDS, cards, resetGameStats])
+	}, [matchCount, MAX_CARDS, cards, winConditionsMet, endGame])
 
 	const handleCardClick = (card: Card) => {
 		out('===========================================')
@@ -209,6 +236,12 @@ export default function Home() {
 		));
 	}
 
+	const handlePlayAgainClick = () => {
+		if (playing || !winConditionsMet() || !gameIsComplete) return;
+		setShowWinMessage(false);
+		startGame();
+	}
+
 	return (
 		<>
 			<div className="container mx-auto px-4 md:px-6 pt-10">
@@ -221,8 +254,15 @@ export default function Home() {
 							<span>Match Count: {matchCount}</span> |
 							<span>Active Card: {activeCardId || "(none)"}</span>
 						</div>
-						<div className="flex flex-row h-4 justify-center">
-							{showWinMessage && <span className="font-black">You won! Good job.</span>}
+						<div className="flex flex-row h-10 justify-center align-middle gap-2">
+							{showWinMessage && <>
+								<div className="flex flex-col items-center justify-center font-black text-green-700">
+									You won! Good job.
+								</div>
+								<div className="flex justify-center items-center">
+									<Button className='h-8 bg-green-700' onClick={handlePlayAgainClick}>Play Again ?</Button>
+								</div>
+							</>}
 						</div>
 					</div>
 					<div className="flex mx-auto">
