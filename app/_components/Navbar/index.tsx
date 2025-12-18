@@ -16,7 +16,7 @@ export default function Navbar() {
 					<Brain className="h-6 w-6 mr-2" />
 					<span className="text-xl font-bold">Memory Game</span>
 				</Link>
-				<div className="flex-1 flex justify-center">
+				<div className="flex-1 flex justify-center ml-[-180px]">
 					<nav className="hidden md:flex items-center w-full">
 						<div className="flex flex-row items-center justify-center gap-2 w-[80%] mx-auto">
 							{navLinks.map((item) =>
