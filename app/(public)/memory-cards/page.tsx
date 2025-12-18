@@ -1,12 +1,12 @@
 'use client';
-import './demo.css';
+import './style.css';
 import Image from 'next/image';
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button'
-import DemoSettingsDialog from '@/app/(public)/demo/_components/DemoSettingsDialog'
+import DemoSettingsDialog from '@/app/(public)/memory-cards/_components/SettingsDialog'
 import { Card, PreSymbol, DemoGameSettings } from './types'
 
-const emojis = [ "🤷‍♂️", "👍", "👏", "🧠", "😂", "😁", "🎉", "🤩" ];
+const emojis = ["🤷‍♂️", "👍", "👏", "🧠", "😂", "😁", "🎉", "🤩"];
 /*
 TODO:
 - reset existing game button (keep cards/symbols)
@@ -18,11 +18,11 @@ TODO:
 
 
 export default function Home() {
-	const out = (s:string) => { console.log(s) }
+	const out = (s: string) => { console.log(s) }
 	const defaultGameSettings: DemoGameSettings = {
 		cardCount: 16, cardsPerMatch: 2, canUnflipCards: true, missFlipDelay: 1000
 	}
-	const [gameSettings, setGameSettings] = useState<DemoGameSettings>({...defaultGameSettings});
+	const [gameSettings, setGameSettings] = useState<DemoGameSettings>({ ...defaultGameSettings });
 	const [cards, setCards] = useState<Card[]>([]);
 	const [activeCardId, setActiveCardId] = useState<number | null>(null);
 	const [flipCount, setFlipCount] = useState<number>(0);
@@ -31,7 +31,7 @@ export default function Home() {
 	const [playing, setPlaying] = useState<boolean>(false);
 	const [showWinMessage, setShowWinMessage] = useState<boolean>(false);
 	const [gameIsComplete, setGameIsComplete] = useState<boolean>(false);
-	
+
 
 	const setupCardSymbols = useCallback(() => {
 		if (gameSettings.cardsPerMatch === 0 || gameSettings.cardCount <= gameSettings.cardsPerMatch || gameSettings.cardCount % gameSettings.cardsPerMatch !== 0) {
@@ -74,7 +74,7 @@ export default function Home() {
 		}
 		return newCards
 	}, [gameSettings.cardCount, gameSettings.cardsPerMatch]);
-	
+
 	const resetGameStats = useCallback(() => {
 		setActiveCardId(null);
 		setFlipCount(0);
@@ -93,7 +93,7 @@ export default function Home() {
 			// todo: error logging with posthog or sentry or something
 			console.error(err);
 		}
-		
+
 		setPlaying(true);
 	}, [resetGameStats, setupCardSymbols, generateNewCards, setCards]);
 
@@ -103,7 +103,7 @@ export default function Home() {
 
 	const winConditionsMet = useCallback(() => {
 		return matchCount === (gameSettings.cardCount / gameSettings.cardsPerMatch)
-				&& cards.every((c) => c.matched && c.flipped);
+			&& cards.every((c) => c.matched && c.flipped);
 	}, [matchCount, gameSettings.cardCount, gameSettings.cardsPerMatch, cards]);
 
 	const endGame = useCallback(() => {
@@ -118,8 +118,8 @@ export default function Home() {
 		out(`condition one: ${matchCount  >= (MAX_CARDS / 2) - 1}`)
 		out(`Cards: ${JSON.stringify(cards)}`)
 		out(`condition two: ${cards.every((c) => c.matched && c.flipped)}`)*/
-		
-		if(
+
+		if (
 			winConditionsMet()
 		) {
 			endGame();
@@ -157,11 +157,11 @@ export default function Home() {
 			out('===========================================')
 			return;
 		}
-		
+
 		out(`Flipping card ${card.id}`)
 		flipCardById(card.id)
 		out(`Done flipping card ${card.id}`)
-		
+
 		// if activeCard is null, set this as the active card, add 1 to flipCount, and return
 		if (activeCardId === null) {
 			out(`activeCardId is null (no other cards are flipped)`);
@@ -196,7 +196,7 @@ export default function Home() {
 			return;
 		}
 		out(`Did not find a match between Cards ${card.id} and ${activeCardId}`)
-		
+
 		setMissCount((prev) => prev + 1);
 		setActiveCardId(null);
 		out(`setting timeout to flip cards back with a ${gameSettings.missFlipDelay}ms delay`)
@@ -220,7 +220,7 @@ export default function Home() {
 		if (!card) throw Error(`could not find card ${cardId} to set as matched`)
 		if (card?.matched === true) return;
 		out(`setting Card id:${cardId} as matched`)
-		setCards((prev) => prev.map(c => 
+		setCards((prev) => prev.map(c =>
 			c.id === cardId ? { ...c, matched: true } : c
 		));
 	}
@@ -230,7 +230,7 @@ export default function Home() {
 		setCards((prev) => (
 			prev.map(
 				(item) => (
-					item.id === id ? {...item, flipped: !item.flipped} : item 
+					item.id === id ? { ...item, flipped: !item.flipped } : item
 				)
 			)
 		));
@@ -248,7 +248,7 @@ export default function Home() {
 
 	const handleSettingsUpdate = (newSettings: DemoGameSettings) => {
 		setPlaying(false);
-		setGameSettings((prev) => ({...prev, ...newSettings}))
+		setGameSettings((prev) => ({ ...prev, ...newSettings }))
 		setGameIsComplete(true);
 		startGame();
 	}
@@ -257,7 +257,7 @@ export default function Home() {
 		<>
 			<div className="container mx-auto px-4 md:px-6 pt-10">
 				<div className="flex flex-col w-full max-w-3xl mx-auto space-y-8">
-					<h1 className="text-3xl text-center">Memory Cards Demo</h1>
+					<h1 className="text-3xl text-center">Memory Cards</h1>
 					<div className="flex flex-col gap-2">
 						<div className="flex flex-col gap-2">
 							<div className="flex flex-col gap-2">
@@ -294,7 +294,7 @@ export default function Home() {
 									<div key={`card-${card.id}`} className={`mem-card ${card.flipped ? "flipped" : ""} ${card.matched ? "matched" : ""}`} onClick={() => handleCardClick(card)}>
 										<div className="front">
 											<div className="px-2">
-												<Image src="next.svg" width="150" height="150" alt="next.js logo" className="card-back-img"  />
+												<Image src="next.svg" width="150" height="150" alt="next.js logo" className="card-back-img" />
 											</div>
 										</div>
 										<div className="back" >
