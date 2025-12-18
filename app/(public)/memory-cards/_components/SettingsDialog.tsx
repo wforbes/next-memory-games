@@ -34,10 +34,10 @@ export default function DemoSettingsDialog(
 	const loadSettings = useCallback(() => {
 		if (!settings) return;
 		console.log(JSON.stringify(settings));
-		setCardCount(""+settings.cardCount);
-		setCardsPerMatch(""+settings.cardsPerMatch);
+		setCardCount("" + settings.cardCount);
+		setCardsPerMatch("" + settings.cardsPerMatch);
 		setCanUnflipCards(settings.canUnflipCards);
-		setMissFlipDelay(""+settings.missFlipDelay);
+		setMissFlipDelay("" + settings.missFlipDelay);
 	}, [settings])
 
 	const clearSettings = useCallback(() => {
@@ -48,7 +48,7 @@ export default function DemoSettingsDialog(
 	}, [])
 
 	useEffect(() => {
-		
+
 		if (open === true) {
 			console.log("opened")
 			loadSettings();
@@ -89,7 +89,7 @@ export default function DemoSettingsDialog(
 
 	const handleSave = () => {
 		setValidationError("");
-		if(!saveIsValid()) {
+		if (!saveIsValid()) {
 			return;
 		}
 		const newSettings: DemoGameSettings = {
@@ -106,10 +106,10 @@ export default function DemoSettingsDialog(
 
 	const canSave = () => {
 		return (
-			(settings.cardCount+"") !== cardCount
-			|| (settings.cardsPerMatch+"") !== cardsPerMatch
+			(settings.cardCount + "") !== cardCount
+			|| (settings.cardsPerMatch + "") !== cardsPerMatch
 			|| (settings.canUnflipCards) !== canUnflipCards
-			|| (settings.missFlipDelay+"") !== missFlipDelay
+			|| (settings.missFlipDelay + "") !== missFlipDelay
 		);
 	}
 
@@ -121,7 +121,7 @@ export default function DemoSettingsDialog(
 				</DialogTrigger>
 				<DialogContent className="px-3">
 					<DialogHeader>
-						<DialogTitle className="text-center">Demo Game Settings</DialogTitle>
+						<DialogTitle className="text-center">Settings</DialogTitle>
 						<DialogDescription></DialogDescription>
 					</DialogHeader>
 					<Card className="flex flex-col p-4 gap-4">

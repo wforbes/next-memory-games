@@ -2,9 +2,9 @@ import Link from 'next/link';
 import { Brain } from 'lucide-react';
 
 const navLinks = [{
-	key: 'demo',
-	label: 'Demo',
-	href: '/demo'
+	key: 'memory-cards',
+	label: 'Memory Cards',
+	href: '/memory-cards'
 }]
 
 export default function Navbar() {
